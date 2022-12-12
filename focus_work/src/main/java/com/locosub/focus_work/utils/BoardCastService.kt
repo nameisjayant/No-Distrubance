@@ -1,90 +1,59 @@
 package com.locosub.focus_work.utils
 
-import android.R
-import android.annotation.SuppressLint
-import android.app.*
+import android.annotation.TargetApi
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.CountDownTimer
 import android.os.IBinder
-import androidx.core.app.NotificationCompat
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
+import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationManagerCompat
 
 
-class BoardCastService : Service() {
+class BoardCastService : BroadcastReceiver() {
 
-    companion object {
-        private const val CHANNEL_ID = "ForegroundServiceChannel"
-        const val COUNTDOWN_BR = "com.locosub.focus_work"
+    override fun onReceive(context: Context?, intent: Intent?) {
+        val notificationManager = NotificationManagerCompat.from(context!!)
+
+        val notificationId = 1
+        notificationManager.cancel(notificationId)
     }
 
-    val intent = Intent(COUNTDOWN_BR)
-    private var cdt: CountDownTimer? = null
+}
 
-    override fun onCreate() {
-        super.onCreate()
-        cdt = object : CountDownTimer(50000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
+class Block_All_Notification : NotificationListenerService() {
+    override fun onBind(intent: Intent): IBinder? {
+        return super.onBind(intent)
+    }
 
-                intent.putExtra("countdown", millisUntilFinished)
-                intent.putExtra("countdownTimerRunning", true)
-                intent.putExtra("countdownTimerFinished", false)
-                sendBroadcast(intent)
-            }
+    @RequiresApi(Build.VERSION_CODES.Q)
+    override fun onNotificationPosted(sbn: StatusBarNotification) {
 
-            override fun onFinish() {
-                intent.putExtra("countdownTimerFinished", true)
-                sendBroadcast(intent)
-                stopForeground(true)
-                stopSelf()
-            }
+        Log.d("Msg", "Notification arrived ${sbn.packageName},${sbn.id},${sbn.key},${sbn.uid}")
 
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
+            cancelNotification(sbn.packageName, sbn.tag, sbn.id)
+        } else {
+            cancelNotification(sbn.key)
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    override fun onDestroy() {
-        cdt!!.cancel()
-        sendBroadcast(intent)
-        super.onDestroy()
+    @RequiresApi(Build.VERSION_CODES.Q)
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        // Implement what you want here
+        Log.d("Msg", "Notification Removed")
+        clearNotofication(sbn.uid)
+        cancelNotification(sbn.key)
     }
 
-
-    @SuppressLint("UnspecifiedImmutableFlag")
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        /* Notification */
-        val input = intent.getStringExtra("inputExtra")
-//        createNotificationChannel()
-//        val notificationIntent = Intent(this, BroadcastReceiver::class.java)
-//        val pendingIntent = PendingIntent.getActivity(
-//            this,
-//            0, notificationIntent, 0
-//        )
-//        /* NotificationBuilder */
-//        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-//            .setContentTitle("Foreground Service")
-//            .setContentText(input)
-//            .setSmallIcon(R.drawable.sym_def_app_icon)
-//            .setContentIntent(pendingIntent)
-//            .build()
-//        startForeground(1, notification)
-        return START_NOT_STICKY
+    private fun clearNotofication(notificationId: Int) {
+        val ns = NOTIFICATION_SERVICE
+        val nMgr = this.getSystemService(ns) as NotificationManager
+        nMgr.cancel(notificationId)
     }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
-                CHANNEL_ID,
-                "Foreground Service Channel",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-            val manager = getSystemService(
-                NotificationManager::class.java
-            )
-            manager.createNotificationChannel(serviceChannel)
-        }
-    }
-
 }
 

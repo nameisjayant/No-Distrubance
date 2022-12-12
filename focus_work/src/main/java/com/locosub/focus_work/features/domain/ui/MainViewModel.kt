@@ -3,6 +3,7 @@ package com.locosub.focus_work.features.domain.ui
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.locosub.focus_work.common.doOnFailure
@@ -10,6 +11,7 @@ import com.locosub.focus_work.common.doOnLoading
 import com.locosub.focus_work.common.doOnSuccess
 import com.locosub.focus_work.data.models.Task
 import com.locosub.focus_work.data.repository.MainRepository
+import com.locosub.focus_work.data.repository.PreferenceStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -19,7 +21,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val repository: MainRepository
+    private val repository: MainRepository,
+    private val preferenceStore: PreferenceStore
 ) : ViewModel() {
 
     private val _tasksResponse: MutableState<TaskStates> = mutableStateOf(TaskStates())
@@ -33,6 +36,13 @@ class MainViewModel @Inject constructor(
 
     private val _addTaskUpdateEventFlow = MutableSharedFlow<TaskUiEvent<String>>()
     val addTaskUpdateEventFlow = _addTaskUpdateEventFlow.asSharedFlow()
+
+    private val _taskData: MutableState<Task.TaskResponse> = mutableStateOf(Task.TaskResponse())
+    val taskData: State<Task.TaskResponse> = _taskData
+
+    fun setTaskData(data: Task.TaskResponse) {
+        _taskData.value = data
+    }
 
     init {
         viewModelScope.launch {
@@ -56,22 +66,22 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onEvent(taskEvents: TaskEvents){
-        when(taskEvents){
+    fun onEvent(taskEvents: TaskEvents) {
+        when (taskEvents) {
             is TaskEvents.AddTask -> {
-               viewModelScope.launch {
-                   repository.addTask(taskEvents.data)
-                       .doOnSuccess {
-                           _addTaskEventFlow.emit(TaskUiEvent.Success(it))
-                       }
-                       .doOnFailure {
-                           _addTaskEventFlow.emit(TaskUiEvent.Failure(it ?: Throwable()))
-                       }
-                       .doOnLoading {
-                           _addTaskEventFlow.emit(TaskUiEvent.Loading)
-                       }
-                       .collect()
-               }
+                viewModelScope.launch {
+                    repository.addTask(taskEvents.data)
+                        .doOnSuccess {
+                            _addTaskEventFlow.emit(TaskUiEvent.Success(it))
+                        }
+                        .doOnFailure {
+                            _addTaskEventFlow.emit(TaskUiEvent.Failure(it ?: Throwable()))
+                        }
+                        .doOnLoading {
+                            _addTaskEventFlow.emit(TaskUiEvent.Loading)
+                        }
+                        .collect()
+                }
             }
             is TaskEvents.DeleteTask -> {
                 viewModelScope.launch {
@@ -106,6 +116,24 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun setPref(key: Preferences.Key<Boolean>, value: Boolean) = viewModelScope.launch {
+        preferenceStore.setBooleanPref(key, value)
+    }
+
+    fun setPref(key: Preferences.Key<Long>, value: Long) = viewModelScope.launch {
+        preferenceStore.setLongPref(key, value)
+    }
+
+    fun getLongPref(key: Preferences.Key<Long>) = preferenceStore.getLongPref(key)
+
+    fun getStringPref(key: Preferences.Key<String>) = preferenceStore.getStringPref(key)
+
+    fun setStringPref(key: Preferences.Key<String>, value: String) = viewModelScope.launch {
+        preferenceStore.setStringPref(key, value)
+    }
+
+
+    fun getBooleanPref(key: Preferences.Key<Boolean>) = preferenceStore.getBooleanPref(key)
 
 }
 

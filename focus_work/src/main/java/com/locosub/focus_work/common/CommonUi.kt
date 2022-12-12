@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.locosub.focus_work.ui.theme.Navy
 
 
 @SuppressLint("UnnecessaryComposedModifier")
@@ -46,6 +47,7 @@ fun CommonTextField(
     imeAction: ImeAction = ImeAction.Next,
     color: Color = Color.Transparent,
     keyboardType: KeyboardType = KeyboardType.Text,
+    enable: Boolean = true,
     onNext: () -> Unit = {},
     onTextChange: (String) -> Unit
 ) {
@@ -65,12 +67,13 @@ fun CommonTextField(
         colors = TextFieldDefaults.textFieldColors(
             focusedIndicatorColor = color,
             backgroundColor = Color.Transparent,
-            unfocusedIndicatorColor = color
+            unfocusedIndicatorColor = color,
         ),
         keyboardOptions = KeyboardOptions(imeAction = imeAction, keyboardType = keyboardType),
         keyboardActions = KeyboardActions {
             onNext()
-        }
+        },
+        enabled = enable
     )
 }
 
@@ -103,6 +106,8 @@ fun CommonRadioButton(
 fun CommonButton(
     title: String,
     modifier: Modifier = Modifier,
+    enable: Boolean = true,
+    background: Color = Navy,
     onClick: () -> Unit = {}
 ) {
 
@@ -110,7 +115,11 @@ fun CommonButton(
         onClick = {
             onClick()
         },
-        modifier = modifier
+        modifier = modifier,
+        enabled = enable,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = background
+        )
     ) {
         Text(text = title)
     }

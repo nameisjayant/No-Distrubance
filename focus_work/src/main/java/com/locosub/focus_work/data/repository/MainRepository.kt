@@ -1,6 +1,5 @@
 package com.locosub.focus_work.data.repository
 
-import android.content.ClipData.Item
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -83,6 +82,7 @@ class MainRepository @Inject constructor(
         val map = HashMap<String, Any>()
         map["title"] = task.task?.title!!
         map["description"] = task.task.description
+        map["completed"] = task.task.completed
 
         db.child(task.key).updateChildren(
             map

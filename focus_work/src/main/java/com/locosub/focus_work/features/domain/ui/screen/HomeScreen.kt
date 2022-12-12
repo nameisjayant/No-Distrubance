@@ -1,9 +1,6 @@
 package com.locosub.focus_work.features.domain.ui.screen
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,8 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.rounded.AddTask
-import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -33,8 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
 import com.locosub.focus_work.R
 import com.locosub.focus_work.common.LoadingDialog
 import com.locosub.focus_work.common.getActivity
@@ -43,7 +38,6 @@ import com.locosub.focus_work.features.domain.ui.AddTaskActivity
 import com.locosub.focus_work.features.domain.ui.MainViewModel
 import com.locosub.focus_work.features.domain.ui.TaskEvents
 import com.locosub.focus_work.features.domain.ui.TaskUiEvent
-import com.locosub.focus_work.features.navigation.NavigationItems
 import com.locosub.focus_work.ui.theme.DarkBlue
 import com.locosub.focus_work.ui.theme.LightGrey
 import com.locosub.focus_work.ui.theme.Navy
@@ -55,13 +49,34 @@ import kotlinx.coroutines.flow.collectLatest
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
-    viewModel: MainViewModel = hiltViewModel()
+    viewModel: MainViewModel
 ) {
 
     val context = LocalContext.current.getActivity()!!
     val res = viewModel.taskResponse.value
     var isLoading by remember { mutableStateOf(false) }
-    var key by remember { mutableStateOf("") }
+    var key by rememberSaveable { mutableStateOf("") }
+    if (res.data.isNotEmpty())
+        key = res.data[0].key
+
+    LaunchedEffect(key1 = res) {
+        if (res.data.isNotEmpty()) {
+            res.data.forEach {
+                if (!it.task?.completed!!) {
+                    viewModel.setTaskData(
+                        Task.TaskResponse(
+                            Task(
+                                it.task?.title ?: "-",
+                                it.task?.description ?: "-"
+                            ),
+                            it.key
+                        )
+                    )
+                    return@LaunchedEffect
+                }
+            }
+        }
+    }
 
 
     LaunchedEffect(key1 = true) {
@@ -133,18 +148,25 @@ fun HomeScreen(
                             it.key
                         }
                     ) { data ->
-                        TaskEachRow(data, onEdit = {
-                            val intent = Intent(context, AddTaskActivity::class.java)
-                            intent.putExtra("key", UPDATE_TASK)
-                            intent.putExtra("data", data)
-                            context.startActivity(intent)
-                        }, selected = data.key == key, onKeyUpdate = { key = it }) {
-                            viewModel.onEvent(
-                                TaskEvents.DeleteTask(
-                                    data.key
+                        if (!data.task?.completed!!)
+                            TaskEachRow(
+                                data,
+                                onEdit = {
+                                    val intent = Intent(context, AddTaskActivity::class.java)
+                                    intent.putExtra("key", UPDATE_TASK)
+                                    intent.putExtra("data", data)
+                                    context.startActivity(intent)
+                                },
+                                selected = data.key == key,
+                                onKeyUpdate = { key = it },
+                                viewModel = viewModel
+                            ) {
+                                viewModel.onEvent(
+                                    TaskEvents.DeleteTask(
+                                        data.key
+                                    )
                                 )
-                            )
-                        }
+                            }
                     }
                 }
             }
@@ -175,11 +197,11 @@ fun HomeScreen(
 fun TaskEachRow(
     data: Task.TaskResponse,
     selected: Boolean,
+    viewModel: MainViewModel,
     onKeyUpdate: (String) -> Unit,
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
-
 
     Card(
         modifier = Modifier
@@ -203,6 +225,15 @@ fun TaskEachRow(
                 ) {
                     RadioButton(selected = selected, onClick = {
                         onKeyUpdate(data.key)
+                        viewModel.setTaskData(
+                            Task.TaskResponse(
+                                Task(
+                                    data.task?.title ?: "-",
+                                    data.task?.description ?: "-"
+                                ),
+                                data.key
+                            )
+                        )
                     })
                     Column {
                         Text(

@@ -7,7 +7,7 @@ import kotlinx.parcelize.Parcelize
 data class Task(
     val title: String = "",
     val description: String = "",
-    val isCompleted: Boolean = false
+    val completed: Boolean = false
 ) : Parcelable {
     @Parcelize
     data class TaskResponse(

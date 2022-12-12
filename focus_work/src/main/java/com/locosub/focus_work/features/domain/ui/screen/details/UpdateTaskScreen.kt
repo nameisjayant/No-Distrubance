@@ -96,7 +96,7 @@ fun UpdateTaskScreen(
                                 Task.TaskResponse(
                                     Task(
                                         title,
-                                        task
+                                        task,
                                     ),
                                     data.key
                                 )
